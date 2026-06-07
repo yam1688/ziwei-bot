@@ -325,8 +325,8 @@ function genYiJing(method='dayan') {
   const lines = yaoStr.split('').map(c => parseInt(c));
 
   // 本卦
-  const upperBin = lines.slice(0,3).map(c => c>=7 ? 1 : 0).join('');
-  const lowerBin = lines.slice(3,6).map(c => c>=7 ? 1 : 0).join('');
+  const upperBin = lines.slice(0,3).map(c => (c===7||c===9) ? 1 : 0).join('');
+  const lowerBin = lines.slice(3,6).map(c => (c===7||c===9) ? 1 : 0).join('');
   const upperGuaNum = parseInt(upperBin, 2) + 1;
   const lowerGuaNum = parseInt(lowerBin, 2) + 1;
   const trigramMap = {7:'艮',6:'坎',5:'巽',4:'震',3:'离',2:'兑',1:'乾',0:'坤'};
@@ -337,22 +337,29 @@ function genYiJing(method='dayan') {
   // Get hexagram name from GUA64_ORDER
   // We need to know the hexagram ordering. The upper/lower trigrams combine.
   // I'll use decodeGua if available, or construct it.
-  let benGua, bienGua, huGua;
-  try {
-    benGua = decodeGua(yaoStr);
-  } catch(e) {
-    benGua = { hexagram: '?', name: '未知' };
-  }
+  // 用 getGuaName 获取卦名（比 decodeGua 更稳定）
+  const guaNameFromFn = getGuaName?.(yaoStr) || '未知';
+  let benGua = { hexagram: '?', name: guaNameFromFn };
+  let bienGua, huGua;
 
   try {
-    huGua = getHuGua(yaoStr);
+    const decoded = decodeGua(yaoStr);
+    if (decoded?.name) benGua = decoded;
+  } catch(e) { /* fallback to getGuaName */ }
+
+  try {
+    const hg = getHuGua(yaoStr);
+    if (typeof hg === 'string') huGua = { name: hg };
+    else huGua = hg;
   } catch(e) { huGua = null; }
 
   try {
-    bienGua = getZhiGua(yaoStr);
+    const bg = getZhiGua(yaoStr);
+    if (typeof bg === 'string') bienGua = { name: bg };
+    else bienGua = bg;
   } catch(e) { bienGua = null; }
 
-  const movingPositions = getMovingYaoPositions(yaoStr);
+  const movingPositions = getMovingYaoPositions(yaoStr) || [];
 
   let r = `☯ **易经占卜**\n━━━━━━━━━━━━━━\n`;
   r += `筮法：${method==='dayan'?'大衍筮法':'略筮法'}\n\n`;
@@ -362,7 +369,7 @@ function genYiJing(method='dayan') {
   const symbols = ['— 阳','- - 阴'];
   for (let i=5; i>=0; i--) {
     const num = lines[i];
-    const isY = num >= 7;
+    const isY = num === 7 || num === 9;
     const isM = num === 6 || num === 9;
     const mark = isM ? ' ⚡变' : '';
     const yaoIdx = 6-i;
