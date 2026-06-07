@@ -618,10 +618,18 @@ bot.onText(/^\/qimen(?:\s+(.+))?$/, async (msg, match) => {
   const d = parseInt(args?.[2]) || now.getDate();
   const h = parseInt(args?.[3]) || now.getHours();
   try {
-    const { text, data } = genQiMenData(y, m, d, h);
-    const ai = await aiInterpret('qimen', data);
+    const result = genQiMenData(y, m, d, h);
+    const text = result.text || '';
+    // 如果文本以❌开头（错误信息），直接发送不加AI解盘
+    if (text.startsWith('❌')) {
+      await bot.sendMessage(c, text);
+      return;
+    }
+    const ai = await aiInterpret('qimen', result.data || {});
     await bot.sendMessage(c, text + '\n\n🤖 **AI 解盘**\n' + ai, { parse_mode:'Markdown' });
-  } catch(e) { bot.sendMessage(c, `❌ 奇门失败：${e.message}`); }
+  } catch(e) { 
+    try { bot.sendMessage(c, `❌ 奇门失败：${e.message}`); } catch(e2) {}
+  }
 });
 
 // ── 六爻纳甲 ──
