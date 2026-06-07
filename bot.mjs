@@ -20,6 +20,7 @@ import { genMeiHua } from './lib/meihua.mjs';
 import { genFengShui } from './lib/fengshui.mjs';
 import { aiInterpret } from './lib/interpret.mjs';
 import { genSanYuanText, genJiuYunList } from './lib/sanyuan.mjs';
+import { detectPatterns, getSanFangAnalysis, getStarBrightnessTable, getCareerSuggestion } from './lib/zw_patterns.mjs';
 
 const TOKEN = process.env.BOT_TOKEN || '8936592956:AAE1h-S8HSHaQu66aQWtXLCPvWJyq1c3FQU';
 
@@ -179,6 +180,22 @@ function genZW(year, month, day, hour, gender) {
   for (const p of a.palaces) {
     const all=[...(p.majorStars||[]),...(p.minorStars||[])];
     r += `  ${p.name}：${all.map(s=>s.name).join('、')||'空宫'}\n`;
+  }
+  r += '\n';
+
+  // ── 细化部分 ──
+  r += getSanFangAnalysis(a.palaces) + '\n';
+  r += getStarBrightnessTable(a.palaces) + '\n';
+  r += getCareerSuggestion(a.palaces) + '\n';
+  
+  const patterns = detectPatterns(a.palaces);
+  if (patterns.length) {
+    r += `🏆 **格局识别**\n`;
+    for (const pat of patterns) {
+      const lv = {excellent:'🏅大吉',good:'✅吉',neutral:'➖平',caution:'⚠️凶'};
+      r += `  ${lv[pat.level]||'➖'} ${pat.name}\n`;
+      r += `    ${pat.desc}\n`;
+    }
   }
   return r;
 }
