@@ -3,12 +3,15 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "node bot.mjs"
+    "start": "node bot.mjs",
+    "postinstall": "node postinstall.mjs"
   },
   "dependencies": {
+    "bigfishmarquis-qimen": "^1.0.0",
     "iching-shifa": "^1.7.0",
     "iztro": "^2.5.8",
     "lunar-javascript": "^1.7.3",
-    "node-telegram-bot-api": "^0.66.0"
+    "node-telegram-bot-api": "^0.66.0",
+    "qimen-dunjia": "^2.1.0"
   }
 }

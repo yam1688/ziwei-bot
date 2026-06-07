@@ -14,6 +14,10 @@ import {
   getGuaName, decodeGua, getHuGua, getZhiGua, getMovingYaoPositions,
   getCurrentSolarTerm, GUA_DESCRIPTIONS, BAGUA_XIANG, NAYIN_60,
 } from 'iching-shifa';
+import { genQiMen } from './lib/qimen.mjs';
+import { genLiuYao } from './lib/liuyao.mjs';
+import { genMeiHua } from './lib/meihua.mjs';
+import { genFengShui } from './lib/fengshui.mjs';
 
 const TOKEN = process.env.BOT_TOKEN || '8936592956:AAE1h-S8HSHaQu66aQWtXLCPvWJyq1c3FQU';
 
@@ -84,7 +88,11 @@ bot.setMyCommands([
   { command: 'zw',     description: '紫微斗数排盘 /zw 1990 1 1 6 男' },
   { command: 'bazi',   description: '八字排盘 /bazi 1990 1 1 6 男' },
   { command: 'yijing', description: '易经占卜起卦' },
+  { command: 'qimen',  description: '奇门遁甲 /qimen 2026 6 8 10' },
+  { command: 'liuyao', description: '六爻纳甲起卦' },
+  { command: 'meihua', description: '梅花易数占卜' },
   { command: 'today',  description: '今日黄历·宜忌·九星·星宿' },
+  { command: 'fengshui', description: '风水九星 年/月/日飞星' },
   { command: 'star',   description: '查主星含义 /star 紫微' },
   { command: 'gua',    description: '查卦象 /gua 乾' },
   { command: 'help',   description: '使用帮助' },
@@ -455,21 +463,23 @@ bot.onText(/^\/help$/, (msg) => {
 **排盘类**
 /zw — 紫微斗数排盘
 　/zw 1990 1 1 6 男 — 一行快速排
-　/zw 无参数 — 分步输入
-/bazi — 八字排盘（含十神·大运·流年）
+/bazi — 八字排盘（十神·大运·流年）
 　/bazi 1990 1 1 6 男
-/yijing — 易经占卜起卦（大衍筮法）
+/yijing — 易经占卜起卦
+/qimen — 奇门遁甲排盘
+　/qimen 2026 6 8 10
+/liuyao — 六爻纳甲起卦
+/meihua — 梅花易数占卜
+/fengshui — 风水九星飞布
+/today — 今日黄历（宜忌·九星·星宿）
 
-**查询类**
-/star 紫微 — 查十四主星含义
-/gua 乾 — 查六十四卦卦辞
-
-**择日类**
-/today — 今日黄历（宜忌·九星·星宿·彭祖百忌）
+**查询**
+/star 紫微 — 查十四主星
+/gua 乾 — 查六十四卦
 
 **其他**
-/help — 本帮助
-/cancel — 取消当前操作
+/help
+/cancel
 
 **时辰对照**
 0子 1丑 2寅 3卯 4辰 5巳
@@ -550,6 +560,53 @@ bot.onText(/^\/star(?:\s+(.+))?$/, (msg, match) => {
   const info = STAR_INFO[n];
   if (!info) return bot.sendMessage(c, `❌ 未找到「${n}」`);
   bot.sendMessage(c, `⭐ **${n}**（${info.el} ${info.nature}）\n特质：${info.kw}\n━━━━━━━━━━\n${info.desc}`);
+});
+
+// ── 奇门遁甲 ──
+bot.onText(/^\/qimen(?:\s+(.+))?$/, async (msg, match) => {
+  const c = msg.chat.id;
+  const args = match[1]?.trim().split(/\s+/);
+  const now = new Date();
+  const y = parseInt(args?.[0]) || now.getFullYear();
+  const m = parseInt(args?.[1]) || now.getMonth() + 1;
+  const d = parseInt(args?.[2]) || now.getDate();
+  const h = parseInt(args?.[3]) || now.getHours();
+  try {
+    const r = genQiMen(y, m, d, h);
+    await bot.sendMessage(c, r, { parse_mode:'Markdown' });
+  } catch(e) { bot.sendMessage(c, `❌ 奇门失败：${e.message}`); }
+});
+
+// ── 六爻纳甲 ──
+bot.onText(/^\/liuyao$/, async (msg) => {
+  try {
+    const r = genLiuYao();
+    await bot.sendMessage(msg.chat.id, r, { parse_mode:'Markdown' });
+  } catch(e) { bot.sendMessage(msg.chat.id, `❌ 六爻失败：${e.message}`); }
+});
+
+// ── 梅花易数 ──
+bot.onText(/^\/meihua(?:\s+(.+))?$/, async (msg, match) => {
+  const c = msg.chat.id;
+  const method = match?.[1]?.trim() === 'time' ? 'time' : 'number';
+  try {
+    const r = genMeiHua(method);
+    await bot.sendMessage(c, r, { parse_mode:'Markdown' });
+  } catch(e) { bot.sendMessage(c, `❌ 梅花易数失败：${e.message}`); }
+});
+
+// ── 风水九星 ──
+bot.onText(/^\/fengshui(?:\s+(.+))?$/, async (msg, match) => {
+  const c = msg.chat.id;
+  const args = match[1]?.trim().split(/\s+/);
+  const now = new Date();
+  const y = parseInt(args?.[0]) || now.getFullYear();
+  const m = parseInt(args?.[1]) || now.getMonth() + 1;
+  const d = parseInt(args?.[2]) || now.getDate();
+  try {
+    const r = genFengShui(y, m, d);
+    await bot.sendMessage(c, r, { parse_mode:'Markdown' });
+  } catch(e) { bot.sendMessage(c, `❌ 风水失败：${e.message}`); }
 });
 
 // ── 查卦 ──
