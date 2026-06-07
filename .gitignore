@@ -1,0 +1,7 @@
+node_modules
+.git
+*.log
+explore*.mjs
+test_*.mjs
+deploy*.sh
+.DS_Store
