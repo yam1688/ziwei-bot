@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: ziwei-doushu-bot
+    env: node
+    buildCommand: npm ci --only=production
+    startCommand: node bot.mjs
+    healthCheckPath: /
+    envVars:
+      - key: BOT_TOKEN
+        value: 8936592956:AAE1h-S8HSHaQu66aQWtXLCPvWJyq1c3FQU
