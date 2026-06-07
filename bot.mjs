@@ -14,10 +14,10 @@ import {
   getGuaName, decodeGua, getHuGua, getZhiGua, getMovingYaoPositions,
   getCurrentSolarTerm, GUA_DESCRIPTIONS, BAGUA_XIANG, NAYIN_60,
 } from 'iching-shifa';
-import { genQiMen } from './lib/qimen.mjs';
-import { genLiuYao } from './lib/liuyao.mjs';
-import { genMeiHua } from './lib/meihua.mjs';
-import { genFengShui } from './lib/fengshui.mjs';
+import { genQiMen, genQiMenData } from './lib/qimen.mjs';
+import { genLiuYao, genLiuYaoData } from './lib/liuyao.mjs';
+import { genMeiHua, genMeiHuaData } from './lib/meihua.mjs';
+import { genFengShui, genFengShuiData } from './lib/fengshui.mjs';
 import { aiInterpret } from './lib/interpret.mjs';
 import { genSanYuanText, genJiuYunList } from './lib/sanyuan.mjs';
 import { detectPatterns, getSanFangAnalysis, getStarBrightnessTable, getCareerSuggestion } from './lib/zw_patterns.mjs';
@@ -618,18 +618,18 @@ bot.onText(/^\/qimen(?:\s+(.+))?$/, async (msg, match) => {
   const d = parseInt(args?.[2]) || now.getDate();
   const h = parseInt(args?.[3]) || now.getHours();
   try {
-    const { text, data } = await import('./lib/qimen.mjs').then(m => m.genQiMenData(y, m, d, h));
+    const { text, data } = genQiMenData(y, m, d, h);
     const ai = await aiInterpret('qimen', data);
-    await bot.sendMessage(c, text + '\n\n🤖 **AI 高段位解盘**\n' + ai, { parse_mode:'Markdown' });
+    await bot.sendMessage(c, text + '\n\n🤖 **AI 解盘**\n' + ai, { parse_mode:'Markdown' });
   } catch(e) { bot.sendMessage(c, `❌ 奇门失败：${e.message}`); }
 });
 
 // ── 六爻纳甲 ──
 bot.onText(/^\/liuyao$/, async (msg) => {
   try {
-    const { text, data } = await import('./lib/liuyao.mjs').then(m => m.genLiuYaoData());
+    const { text, data } = genLiuYaoData();
     const ai = await aiInterpret('liuyao', data);
-    await bot.sendMessage(msg.chat.id, text + '\n\n🤖 **AI 高段位解盘**\n' + ai, { parse_mode:'Markdown' });
+    await bot.sendMessage(msg.chat.id, text + '\n\n🤖 **AI 解盘**\n' + ai, { parse_mode:'Markdown' });
   } catch(e) { bot.sendMessage(msg.chat.id, `❌ 六爻失败：${e.message}`); }
 });
 
@@ -638,9 +638,9 @@ bot.onText(/^\/meihua(?:\s+(.+))?$/, async (msg, match) => {
   const c = msg.chat.id;
   const method = match?.[1]?.trim() === 'time' ? 'time' : 'number';
   try {
-    const { text, data } = await import('./lib/meihua.mjs').then(m => m.genMeiHuaData(method));
+    const { text, data } = genMeiHuaData(method);
     const ai = await aiInterpret('meihua', data);
-    await bot.sendMessage(c, text + '\n\n🤖 **AI 高段位解盘**\n' + ai, { parse_mode:'Markdown' });
+    await bot.sendMessage(c, text + '\n\n🤖 **AI 解盘**\n' + ai, { parse_mode:'Markdown' });
   } catch(e) { bot.sendMessage(c, `❌ 梅花易数失败：${e.message}`); }
 });
 
@@ -691,9 +691,9 @@ bot.onText(/^\/fengshui(?:\s+(.+))?$/, async (msg, match) => {
   const m = parseInt(args?.[1]) || now.getMonth() + 1;
   const d = parseInt(args?.[2]) || now.getDate();
   try {
-    const { text, data } = await import('./lib/fengshui.mjs').then(m => m.genFengShuiData(y, m, d));
+    const { text, data } = genFengShuiData(y, m, d);
     const ai = await aiInterpret('fengshui', data);
-    await bot.sendMessage(c, text + '\n\n🤖 **AI 高段位解盘**\n' + ai, { parse_mode:'Markdown' });
+    await bot.sendMessage(c, text + '\n\n🤖 **AI 解盘**\n' + ai, { parse_mode:'Markdown' });
   } catch(e) { bot.sendMessage(c, `❌ 风水失败：${e.message}`); }
 });
 
