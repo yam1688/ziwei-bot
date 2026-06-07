@@ -19,6 +19,7 @@ import { genLiuYao } from './lib/liuyao.mjs';
 import { genMeiHua } from './lib/meihua.mjs';
 import { genFengShui } from './lib/fengshui.mjs';
 import { aiInterpret } from './lib/interpret.mjs';
+import { genSanYuanText, genJiuYunList } from './lib/sanyuan.mjs';
 
 const TOKEN = process.env.BOT_TOKEN || '8936592956:AAE1h-S8HSHaQu66aQWtXLCPvWJyq1c3FQU';
 
@@ -93,6 +94,7 @@ bot.setMyCommands([
   { command: 'liuyao', description: '六爻纳甲起卦' },
   { command: 'meihua', description: '梅花易数占卜' },
   { command: 'today',  description: '今日黄历·宜忌·九星·星宿' },
+  { command: 'sanyuan',  description: '三元九运详解·当前离火运' },
   { command: 'fengshui', description: '风水九星 年/月/日飞星' },
   { command: 'star',   description: '查主星含义 /star 紫微' },
   { command: 'gua',    description: '查卦象 /gua 乾' },
@@ -471,6 +473,7 @@ bot.onText(/^\/help$/, (msg) => {
 　/qimen 2026 6 8 10
 /liuyao — 六爻纳甲起卦
 /meihua — 梅花易数占卜
+/sanyuan — 三元九运详解（当前离火运）
 /fengshui — 风水九星飞布
 /today — 今日黄历（宜忌·九星·星宿）
 
@@ -597,6 +600,14 @@ bot.onText(/^\/meihua(?:\s+(.+))?$/, async (msg, match) => {
     const ai = await aiInterpret('meihua', data);
     await bot.sendMessage(c, text + '\n\n🤖 **AI 高段位解盘**\n' + ai, { parse_mode:'Markdown' });
   } catch(e) { bot.sendMessage(c, `❌ 梅花易数失败：${e.message}`); }
+});
+
+// ── 三元九运 ──
+bot.onText(/^\/sanyuan$/, async (msg) => {
+  try {
+    const r = genSanYuanText();
+    await bot.sendMessage(msg.chat.id, r, { parse_mode:'Markdown' });
+  } catch(e) { bot.sendMessage(msg.chat.id, `❌ 三元九运获取失败：${e.message}`); }
 });
 
 // ── 风水九星 ──
