@@ -1,0 +1,29 @@
+name: Run Bot 24/7
+
+on:
+  schedule:
+    # 每 6 小时重启一次（GitHub Actions 最长 6h）
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+  push:
+
+jobs:
+  run:
+    name: Ziwei Bot
+    runs-on: ubuntu-latest
+    timeout-minutes: 355  # 接近 6h 上限，留 5 分钟缓冲
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - run: npm ci --only=production
+      
+      - name: Start bot
+        run: node bot.mjs
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
