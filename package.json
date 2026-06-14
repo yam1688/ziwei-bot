@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "bigfishmarquis-qimen": "^1.0.0",
+    "dotenv": "^17.4.2",
     "iching-shifa": "^1.7.0",
     "iztro": "^2.5.8",
     "lunar-javascript": "^1.7.3",

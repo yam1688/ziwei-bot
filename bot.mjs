@@ -6,6 +6,7 @@
  * 引擎：iztro / lunar-javascript / iching-shifa
  * 体系：倪海夏《天纪》· 子平八字 · 周易
  */
+import 'dotenv/config';
 import TelegramBot from 'node-telegram-bot-api';
 import { astro } from 'iztro';
 import { Solar, Lunar, EightChar } from 'lunar-javascript';
@@ -28,7 +29,8 @@ import { genJieQi } from './lib/jieqi.mjs';
 import { genBaZhai } from './lib/bazhai.mjs';
 import { genJiRi } from './lib/jiri.mjs';
 
-const TOKEN = process.env.BOT_TOKEN || '8936592956:AAE1h-S8HSHaQu66aQWtXLCPvWJyq1c3FQU';
+const TOKEN = process.env.BOT_TOKEN;
+if (!TOKEN) { console.error('❌ BOT_TOKEN 未设置'); process.exit(1); }
 
 // ─── 常量 ────────────────────────────────────────
 const STEMS = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
@@ -86,13 +88,23 @@ const SHI_SHEN_MAP = {
 const sessions = new Map();
 
 function getSess(chatId) {
-  if (!sessions.has(chatId)) sessions.set(chatId, {});
-  return sessions.get(chatId);
+  if (!sessions.has(chatId)) sessions.set(chatId, { createdAt: Date.now() });
+  const s = sessions.get(chatId);
+  s.createdAt = Date.now(); // 刷新活动时间
+  return s;
 }
 function resetSess(chatId) { sessions.delete(chatId); }
 
 // ─── Bot ──────────────────────────────────
 const bot = new TelegramBot(TOKEN, { polling: true });
+
+// Session 自动清理（30分钟无活动自动过期）
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of sessions) {
+    if (now - (val.createdAt || 0) > 30 * 60 * 1000) sessions.delete(key);
+  }
+}, 5 * 60 * 1000);
 bot.setMyCommands([
   { command: 'zw',     description: '紫微斗数排盘 /zw 1990 1 1 6 男' },
   { command: 'bazi',   description: '八字排盘 /bazi 1990 1 1 6 男' },
