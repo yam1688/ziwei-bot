@@ -29,6 +29,7 @@ import { genJieQi } from './lib/jieqi.mjs';
 import { genBaZhai } from './lib/bazhai.mjs';
 import { genJiRi } from './lib/jiri.mjs';
 import { genClassics, CLASSIC_NAMES } from './lib/classics.mjs';
+import { getYongShen } from './lib/yongshen.mjs';
 import { getDiZhiRelations, getShenSha } from './lib/bazi_detail.mjs';
 
 const TOKEN = process.env.BOT_TOKEN;
@@ -87,15 +88,43 @@ const SHI_SHEN_MAP = {
 };
 
 // ─── 会话 ────────────────────────────────
+import { readFileSync, writeFileSync, existsSync } from 'fs';
+const SESS_FILE = '/tmp/ziwei-bot-sessions.json';
 const sessions = new Map();
 
+// 从磁盘恢复会话
+function loadSessions() {
+  try {
+    if (existsSync(SESS_FILE)) {
+      const data = JSON.parse(readFileSync(SESS_FILE, 'utf-8'));
+      for (const [k, v] of Object.entries(data)) sessions.set(Number(k), v);
+    }
+  } catch(e) { /* 忽略 */ }
+}
+loadSessions();
+
+// 保存到磁盘
+function saveSessions() {
+  try {
+    const obj = {};
+    for (const [k, v] of sessions) obj[k] = v;
+    writeFileSync(SESS_FILE, JSON.stringify(obj), 'utf-8');
+  } catch(e) { /* 忽略 */ }
+}
+
 function getSess(chatId) {
-  if (!sessions.has(chatId)) sessions.set(chatId, { createdAt: Date.now() });
+  if (!sessions.has(chatId)) {
+    sessions.set(chatId, { createdAt: Date.now() });
+    saveSessions();
+  }
   const s = sessions.get(chatId);
-  s.createdAt = Date.now(); // 刷新活动时间
+  s.createdAt = Date.now();
   return s;
 }
-function resetSess(chatId) { sessions.delete(chatId); }
+function resetSess(chatId) {
+  sessions.delete(chatId);
+  saveSessions();
+}
 
 // ─── Bot ──────────────────────────────────
 const bot = new TelegramBot(TOKEN, { polling: true });
@@ -347,6 +376,9 @@ function genBaZi(year, month, day, hour, gender) {
   // ── 神煞 + 刑冲合害 ──
   r += getDiZhiRelations(ec);
   r += getShenSha(ec);
+  
+  // ── 用神分析 ──
+  r += getYongShen(ec);
 
   return r;
 }
