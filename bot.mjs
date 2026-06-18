@@ -568,7 +568,14 @@ bot.onText(/^\/zw(?:\s+(.+))?$/, async (msg, match) => {
   if (args) {
     try {
       const r = genZW(args.year, args.month, args.day, args.hour, args.gender);
+      // 先发排盘结果
       await bot.sendMessage(c, r, { parse_mode:'Markdown' });
+      // 异步追加深层AI解盘（不阻塞）
+      try {
+        const a = astro.bySolar(`${args.year}-${args.month}-${args.day}`, args.hour, args.gender==='male'?'男':'女', true, 'zh-CN');
+        const ai = await aiInterpret('zw', { year: args.year, month: args.month, day: args.day, hour: args.hour, gender: args.gender, palaces: a.palaces.map(p => ({name: p.name, stars: [...(p.majorStars||[]).map(s=>s.name),...(p.minorStars||[]).map(s=>s.name)]})) });
+        await bot.sendMessage(c, `🤖 **AI 深层解盘**\n${ai}`, { parse_mode:'Markdown' });
+      } catch(e) { /* AI解盘可选失败不影响主结果 */ }
     } catch(e) { bot.sendMessage(c, `❌ 紫微排盘失败：${e.message}`); }
     return;
   }
