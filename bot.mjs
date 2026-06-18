@@ -29,6 +29,7 @@ import { genJieQi } from './lib/jieqi.mjs';
 import { genBaZhai } from './lib/bazhai.mjs';
 import { genJiRi } from './lib/jiri.mjs';
 import { genClassics, CLASSIC_NAMES } from './lib/classics.mjs';
+import { getDiZhiRelations, getShenSha } from './lib/bazi_detail.mjs';
 
 const TOKEN = process.env.BOT_TOKEN;
 if (!TOKEN) { console.error('❌ BOT_TOKEN 未设置'); process.exit(1); }
@@ -223,6 +224,29 @@ function genZW(year, month, day, hour, gender) {
       r += `    ${pat.desc}\n`;
     }
   }
+
+  // ── 大限四化 ──
+  r += `🔄 **大限四化**\n`;
+  try {
+    const curAge = a.age || 0;
+    const sortedDaxian = [...a.palaces].filter(p => p.decadal?.range).sort((a,b) => a.decadal.range[0] - b.decadal.range[0]);
+    for (const p of sortedDaxian) {
+      const [s, e] = p.decadal.range;
+      const isCur = curAge >= s && curAge <= e;
+      const stem = p.heavenlyStem || '';
+      const stemIdx = STEMS.indexOf(stem);
+      let sihuaStr = '';
+      if (stemIdx >= 0 && SI_HUA_TABLE[stemIdx]) {
+        const sh = SI_HUA_TABLE[stemIdx];
+        sihuaStr = `禄${sh[0]} 权${sh[1]} 科${sh[2]} 忌${sh[3]}`;
+      }
+      if (sihuaStr) {
+        r += `  ${s}-${e}岁 ${p.name}（${stem}干）：${sihuaStr}${isCur ? ' ◀' : ''}\n`;
+      }
+    }
+  } catch(e) { /* 大限四化可选 */ }
+  r += '\n';
+
   return r;
 }
 
@@ -319,6 +343,10 @@ function genBaZi(year, month, day, hour, gender) {
   } catch(e) {
     r += `  大运计算需具体出生时间\n`;
   }
+
+  // ── 神煞 + 刑冲合害 ──
+  r += getDiZhiRelations(ec);
+  r += getShenSha(ec);
 
   return r;
 }
