@@ -31,6 +31,7 @@ import { genJiRi } from './lib/jiri.mjs';
 import { genClassics, CLASSIC_NAMES } from './lib/classics.mjs';
 import { getYongShen } from './lib/yongshen.mjs';
 import { genLiuNian } from './lib/liunian.mjs';
+import { genHePan } from './lib/hepan.mjs';
 import { getDiZhiRelations, getShenSha } from './lib/bazi_detail.mjs';
 
 const TOKEN = process.env.BOT_TOKEN;
@@ -153,6 +154,7 @@ bot.setMyCommands([
   { command: 'bazhai',   description: '八宅风水吉凶方位' },
   { command: 'jiri',     description: '择日宜忌·彭祖百忌' },
   { command: 'guji',     description: '紫微斗数古籍·骨髓赋·全书' },
+  { command: 'hepan',    description: '紫微合盘 /hepan 1990 1 1 6 男 女 1995 5 5 4 女' },
   { command: 'liunian',  description: '紫微流年盘 /liunian 1990 1 1 6 男 2026' },
   { command: 'fengshui', description: '风水九星 年/月/日飞星' },
   { command: 'star',     description: '查主星含义 /star 紫微' },
@@ -645,6 +647,22 @@ bot.onText(/^\/zw(?:\s+(.+))?$/, async (msg, match) => {
   resetSess(c);
   const s = getSess(c); s.topic='zw'; s.step='yr';
   bot.sendMessage(c, '🔮 **紫微斗数排盘**\n第一步：输入公历出生年份');
+});
+
+// ── 合盘 ──
+bot.onText(/^\/hepan(?:\s+(.+))?$/, async (msg, match) => {
+  const c = msg.chat.id;
+  const a = match[1]?.trim().split(/\s+/);
+  // 格式：/hepan y1 m1 d1 h1 g1 n1 y2 m2 d2 h2 g2 n2
+  if (!a || a.length < 11) {
+    return bot.sendMessage(c, '格式：/hepan 年1 月1 日1 时1 性别1 名1 年2 月2 日2 时2 性别2 名2\n例：/hepan 1990 1 1 6 男 张三 1995 5 5 4 女 李四');
+  }
+  try {
+    const p1 = { year:parseInt(a[0]), month:parseInt(a[1]), day:parseInt(a[2]), hour:parseInt(a[3]), gender:a[4]==='男'?'male':'female', name:a[5] };
+    const p2 = { year:parseInt(a[6]), month:parseInt(a[7]), day:parseInt(a[8]), hour:parseInt(a[9]), gender:a[10]==='男'?'male':'female', name:a[11] || '乙方' };
+    const r = genHePan(p1, p2);
+    await bot.sendMessage(c, r, { parse_mode:'Markdown' });
+  } catch(e) { bot.sendMessage(c, `❌ 合盘失败：${e.message}`); }
 });
 
 // ── 流年盘 ──
