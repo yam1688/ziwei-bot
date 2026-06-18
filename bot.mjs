@@ -28,6 +28,7 @@ import { genShiShen } from './lib/shishen.mjs';
 import { genJieQi } from './lib/jieqi.mjs';
 import { genBaZhai } from './lib/bazhai.mjs';
 import { genJiRi } from './lib/jiri.mjs';
+import { genClassics, CLASSIC_NAMES } from './lib/classics.mjs';
 
 const TOKEN = process.env.BOT_TOKEN;
 if (!TOKEN) { console.error('❌ BOT_TOKEN 未设置'); process.exit(1); }
@@ -120,6 +121,7 @@ bot.setMyCommands([
   { command: 'bamen',    description: '奇门八门九星八神详解' },
   { command: 'bazhai',   description: '八宅风水吉凶方位' },
   { command: 'jiri',     description: '择日宜忌·彭祖百忌' },
+  { command: 'guji',     description: '紫微斗数古籍·骨髓赋·全书' },
   { command: 'fengshui', description: '风水九星 年/月/日飞星' },
   { command: 'star',     description: '查主星含义 /star 紫微' },
   { command: 'gua',      description: '查卦象 /gua 乾' },
@@ -551,6 +553,12 @@ bot.onText(/^\/help$/, (msg) => {
 bot.onText(/^\/cancel$/, (msg) => {
   resetSess(msg.chat.id);
   bot.sendMessage(msg.chat.id, '❌ 已取消。');
+});
+
+// ── 古籍 ──
+bot.onText(/^\/guji(?:\s+(.+))?$/, (msg, match) => {
+  const name = match[1]?.trim();
+  bot.sendMessage(msg.chat.id, genClassics(name), { parse_mode:'Markdown' });
 });
 
 // ── 紫微斗数 ──
