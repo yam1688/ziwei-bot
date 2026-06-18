@@ -30,6 +30,7 @@ import { genBaZhai } from './lib/bazhai.mjs';
 import { genJiRi } from './lib/jiri.mjs';
 import { genClassics, CLASSIC_NAMES } from './lib/classics.mjs';
 import { getYongShen } from './lib/yongshen.mjs';
+import { genLiuNian } from './lib/liunian.mjs';
 import { getDiZhiRelations, getShenSha } from './lib/bazi_detail.mjs';
 
 const TOKEN = process.env.BOT_TOKEN;
@@ -152,6 +153,7 @@ bot.setMyCommands([
   { command: 'bazhai',   description: '八宅风水吉凶方位' },
   { command: 'jiri',     description: '择日宜忌·彭祖百忌' },
   { command: 'guji',     description: '紫微斗数古籍·骨髓赋·全书' },
+  { command: 'liunian',  description: '紫微流年盘 /liunian 1990 1 1 6 男 2026' },
   { command: 'fengshui', description: '风水九星 年/月/日飞星' },
   { command: 'star',     description: '查主星含义 /star 紫微' },
   { command: 'gua',      description: '查卦象 /gua 乾' },
@@ -643,6 +645,23 @@ bot.onText(/^\/zw(?:\s+(.+))?$/, async (msg, match) => {
   resetSess(c);
   const s = getSess(c); s.topic='zw'; s.step='yr';
   bot.sendMessage(c, '🔮 **紫微斗数排盘**\n第一步：输入公历出生年份');
+});
+
+// ── 流年盘 ──
+bot.onText(/^\/liunian(?:\s+(.+))?$/, async (msg, match) => {
+  const c = msg.chat.id;
+  const args = match[1]?.trim().split(/\s+/);
+  if (args && args.length >= 6) {
+    try {
+      const y = parseInt(args[0]), m = parseInt(args[1]), d = parseInt(args[2]);
+      const h = parseInt(args[3]), g = args[4] === '男' ? 'male' : 'female';
+      const ty = parseInt(args[5]) || new Date().getFullYear();
+      const r = genLiuNian(y, m, d, h, g, ty);
+      await bot.sendMessage(c, r, { parse_mode:'Markdown' });
+    } catch(e) { bot.sendMessage(c, `❌ 流年盘失败：${e.message}`); }
+  } else {
+    bot.sendMessage(c, '格式：/liunian 年 月 日 时辰 性别 目标年\n例：/liunian 1990 1 1 6 男 2026');
+  }
 });
 
 // ── 八字 ──
