@@ -33,8 +33,11 @@ import { getYongShen } from './lib/yongshen.mjs';
 import { genLiuNian } from './lib/liunian.mjs';
 import { genHePan } from './lib/hepan.mjs';
 import { getDiZhiRelations, getShenSha } from './lib/bazi_detail.mjs';
+import { getPalaceRating } from './lib/rating.mjs';
+import { genGuiRenText } from './lib/guiren.mjs';
 
 const TOKEN = process.env.BOT_TOKEN;
+const HAS_DEEPSEEK = !!process.env.DEEPSEEK_API_KEY;
 if (!TOKEN) { console.error('❌ BOT_TOKEN 未设置'); process.exit(1); }
 
 // ─── 常量 ────────────────────────────────────────
@@ -92,7 +95,18 @@ const SHI_SHEN_MAP = {
 // ─── 会话 ────────────────────────────────
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 const SESS_FILE = '/tmp/ziwei-bot-sessions.json';
-const sessions = new Map();
+// ⏱ 速率限制（滑动窗口）
+const RATE_LIMIT = parseInt(process.env.RATE_LIMIT) || 30;
+const RATE_WINDOW_MS = 60000;
+const rateMap = new Map();
+function checkRateLimit(chatId) {
+  const now = Date.now();
+  if (!rateMap.has(chatId)) { rateMap.set(chatId, [now]); return true; }
+  const ts = rateMap.get(chatId).filter(t => now - t < RATE_WINDOW_MS);
+  rateMap.set(chatId, ts);
+  if (ts.length >= RATE_LIMIT) return false;
+  ts.push(now); return true;
+}
 
 // 从磁盘恢复会话
 function loadSessions() {
@@ -184,7 +198,10 @@ function parseArgs(args, allowHour=true) {
   const y=parseInt(p[0]), m=parseInt(p[1]), d=parseInt(p[2]);
   let h=0, g='male';
   if (allowHour) {
-    h = parseInt(p[3]); if (isNaN(h)||h<0||h>11) return null;
+    h = parseInt(p[3]);
+    if (isNaN(h) || h < 0) return null;
+    // 支持时钟小时(0-23)和时辰索引(0-11)
+    if (h > 11) h = Math.floor((h + 1) / 2) % 12;
     g = (p[4]==='女'||p[4]==='female') ? 'female' : 'male';
   }
   if (isNaN(y)||isNaN(m)||isNaN(d)) return null;
@@ -243,6 +260,43 @@ function genZW(year, month, day, hour, gender) {
   }
   r += '\n';
 
+  // ── 四化落宫解读 ──
+  try {
+    r += '🔄 **四化落宫解读**\n';
+    const lM={'廉贞':'交际广','破军':'开创财','武曲':'正财运佳','太阳':'官运亨通','贪狼':'偏财运旺','太阴':'房产增值','巨门':'靠口才得财','天梁':'荫庇得财'};
+    const qM={'破军':'开创力强','紫微':'掌权','天机':'谋略升迁','天梁':'监察权','武曲':'武职权','太阳':'事业升迁','巨门':'名望提升','太阴':'幕后掌权','贪狼':'交际得势'};
+    const kM={'文昌':'文名远播','天机':'智慧过人','文曲':'才艺出众','天同':'福气自来','廉贞':'声名远扬'};
+    const jM={'太阳':'事业不顺','廉贞':'情感困扰','巨门':'口舌是非','太阴':'感情不稳','文昌':'学业受阻','文曲':'才艺受阻','天机':'思虑过多','武曲':'破财之象','天同':'劳碌之命','贪狼':'欲望过剩'};
+    for(const p of a.palaces){const ms=p.majorStars||[];for(const s of ms){
+      if(s.mutagen==='禄'&&lM[s.name]) r+='  '+s.name+'化禄在'+p.name+'：'+lM[s.name]+'\n';
+      if(s.mutagen==='权'&&qM[s.name]) r+='  '+s.name+'化权在'+p.name+'：'+qM[s.name]+'\n';
+      if(s.mutagen==='科'&&kM[s.name]) r+='  '+s.name+'化科在'+p.name+'：'+kM[s.name]+'\n';
+      if(s.mutagen==='忌'&&jM[s.name]) r+='  '+s.name+'化忌在'+p.name+'：'+jM[s.name]+'\n';
+    }}
+    r+='\n';
+  } catch(e) {}
+
+  // ── 十二宫古籍断语 ──
+  try {
+    r += '📜 **十二宫断语**\n';
+    const PC=[
+      ['命宫','命宫宜旺不宜衰，吉星朝拱福寿来。凶星会合多刑克，紫府同宫百事谐。'],
+      ['兄弟宫','兄弟宫中若逢吉，手足情深多助力。杀破狼会多争斗，昌曲同临翰墨林。'],
+      ['夫妻宫','夫妻宫中吉星照，琴瑟和鸣乐逍遥。杀破狼会多离别，日月同宫福寿高。'],
+      ['子女宫','子女宫中吉曜临，桂子兰孙满堂春。刑杀若逢多克害，天梁荫护得安宁。'],
+      ['财帛宫','财帛宫中吉曜聚，金玉满堂多积蓄。武曲太阴财禄厚，空劫交临财不聚。'],
+      ['疾厄宫','疾厄宫中吉曜多，一生康泰少灾疴。杀破狼会多灾病，天同天梁保太和。'],
+      ['迁移宫','迁移宫中吉曜临，出门顺利贵人亲。日月同宫多遂意，杀破交驰在外辛。'],
+      ['交友宫','交友宫中吉曜临，朋友相助利功名。杀破若逢多反覆，辅弼同临得众心。'],
+      ['官禄宫','官禄宫中吉曜聚，功名显达位三台。紫微武曲镇边疆，天府天相总朝纲。'],
+      ['田宅宫','田宅宫中吉曜临，家业丰盈子孙兴。太阴禄存多积贮，空劫交临败家声。'],
+      ['福德宫','福德宫中吉曜多，一生快乐无灾疴。天同太阴多福寿，杀破交侵受折磨。'],
+      ['父母宫','父母宫中吉曜临，椿萱并茂福寿深。杀破若逢多克害，昌曲同临翰墨林。'],
+    ];
+    for(const [pn,pc] of PC){r+='  '+pn+'：'+pc+'\n';}
+    r+='\n';
+  } catch(e) {}
+
   // ── 细化部分 ──
   r += getSanFangAnalysis(a.palaces) + '\n';
   r += getStarBrightnessTable(a.palaces) + '\n';
@@ -257,6 +311,16 @@ function genZW(year, month, day, hour, gender) {
       r += `    ${pat.desc}\n`;
     }
   }
+
+  // 📊 命盘综合评级
+  try {
+    const rating = getPalaceRating(a.palaces, patterns);
+    r += '📊 **命盘评级**\n  ' + rating.detail + '\n\n';
+  } catch(e) {}
+  // 🙏 天乙贵人
+  try {
+    r += genGuiRenText(a.heavenlyStemOfBirthYear, year);
+  } catch(e) {}
 
   // ── 大限四化 ──
   r += `🔄 **大限四化**\n`;
@@ -635,7 +699,7 @@ bot.onText(/^\/zw(?:\s+(.+))?$/, async (msg, match) => {
       // 先发排盘结果
       await bot.sendMessage(c, r, { parse_mode:'Markdown' });
       // 异步追加深层AI解盘（不阻塞）
-      try {
+      if (HAS_DEEPSEEK) try {
         const a = astro.bySolar(`${args.year}-${args.month}-${args.day}`, args.hour, args.gender==='male'?'男':'女', true, 'zh-CN');
         const ai = await aiInterpret('zw', { year: args.year, month: args.month, day: args.day, hour: args.hour, gender: args.gender, palaces: a.palaces.map(p => ({name: p.name, stars: [...(p.majorStars||[]).map(s=>s.name),...(p.minorStars||[]).map(s=>s.name)]})) });
         await bot.sendMessage(c, `🤖 **AI 深层解盘**\n${ai}`, { parse_mode:'Markdown' });
@@ -907,5 +971,13 @@ bot.on('message', async (msg) => {
 });
 
 // ── 优雅退出 ──
-process.on('SIGINT', () => { console.log('👋 停止'); bot.stopPolling(); process.exit(0); });
-process.on('SIGTERM', () => { bot.stopPolling(); process.exit(0); });
+async function gracefulShutdown(signal) {
+  console.log(`👋 接收到 ${signal}，开始关闭...`);
+  try {
+    await Promise.race([ bot.close(), new Promise(r => setTimeout(r, 5000)) ]);
+    console.log('✅ Bot 已安全停止');
+  } catch(e) { console.error('⚠️ 停止出错:', e.message); }
+  process.exit(0);
+}
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
