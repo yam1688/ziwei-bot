@@ -93,8 +93,10 @@ const SHI_SHEN_MAP = {
 };
 
 // ─── 会话 ────────────────────────────────
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-const SESS_FILE = '/tmp/ziwei-bot-sessions.json';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import path from 'path';
+const SESS_DIR = process.env.SESS_DIR || '/tmp';
+const SESS_FILE = path.join(SESS_DIR, 'ziwei-bot-sessions.json');
 // ⏱ 速率限制（滑动窗口）
 const RATE_LIMIT = parseInt(process.env.RATE_LIMIT) || 30;
 const RATE_WINDOW_MS = 60000;
@@ -841,33 +843,39 @@ bot.onText(/^\/meihua(?:\s+(.+))?$/, async (msg, match) => {
 });
 
 // ── 五行生克 ──
-bot.onText(/^\/wuxing$/, (msg) => {
-  bot.sendMessage(msg.chat.id, genWuXing(), { parse_mode:'Markdown' });
+bot.onText(/^\/wuxing$/, async (msg) => {
+  try { await bot.sendMessage(msg.chat.id, genWuXing(), { parse_mode:'Markdown' }); }
+  catch(e) { bot.sendMessage(msg.chat.id, `❌ 五行失败：${e.message}`); }
 });
 
 // ── 十神详解 ──
-bot.onText(/^\/shishen$/, (msg) => {
-  bot.sendMessage(msg.chat.id, genShiShen(), { parse_mode:'Markdown' });
+bot.onText(/^\/shishen$/, async (msg) => {
+  try { await bot.sendMessage(msg.chat.id, genShiShen(), { parse_mode:'Markdown' }); }
+  catch(e) { bot.sendMessage(msg.chat.id, `❌ 十神失败：${e.message}`); }
 });
 
 // ── 二十四节气 ──
-bot.onText(/^\/jieqi$/, (msg) => {
-  bot.sendMessage(msg.chat.id, genJieQi(), { parse_mode:'Markdown' });
+bot.onText(/^\/jieqi$/, async (msg) => {
+  try { await bot.sendMessage(msg.chat.id, genJieQi(), { parse_mode:'Markdown' }); }
+  catch(e) { bot.sendMessage(msg.chat.id, `❌ 节气失败：${e.message}`); }
 });
 
 // ── 奇门八门九星八神 ──
-bot.onText(/^\/bamen$/, (msg) => {
-  bot.sendMessage(msg.chat.id, genBaMen(), { parse_mode:'Markdown' });
+bot.onText(/^\/bamen$/, async (msg) => {
+  try { await bot.sendMessage(msg.chat.id, genBaMen(), { parse_mode:'Markdown' }); }
+  catch(e) { bot.sendMessage(msg.chat.id, `❌ 八门失败：${e.message}`); }
 });
 
 // ── 八宅风水 ──
-bot.onText(/^\/bazhai$/, (msg) => {
-  bot.sendMessage(msg.chat.id, genBaZhai(), { parse_mode:'Markdown' });
+bot.onText(/^\/bazhai$/, async (msg) => {
+  try { await bot.sendMessage(msg.chat.id, genBaZhai(), { parse_mode:'Markdown' }); }
+  catch(e) { bot.sendMessage(msg.chat.id, `❌ 八宅失败：${e.message}`); }
 });
 
 // ── 择日宜忌 ──
-bot.onText(/^\/jiri$/, (msg) => {
-  bot.sendMessage(msg.chat.id, genJiRi(), { parse_mode:'Markdown' });
+bot.onText(/^\/jiri$/, async (msg) => {
+  try { await bot.sendMessage(msg.chat.id, genJiRi(), { parse_mode:'Markdown' }); }
+  catch(e) { bot.sendMessage(msg.chat.id, `❌ 择日失败：${e.message}`); }
 });
 
 // ── 三元九运 ──
