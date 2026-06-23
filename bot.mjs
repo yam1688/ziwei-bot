@@ -100,6 +100,7 @@ const SESS_FILE = path.join(SESS_DIR, 'ziwei-bot-sessions.json');
 // ⏱ 速率限制（滑动窗口）
 const RATE_LIMIT = parseInt(process.env.RATE_LIMIT) || 30;
 const RATE_WINDOW_MS = 60000;
+const sessions = new Map();
 const rateMap = new Map();
 function checkRateLimit(chatId) {
   const now = Date.now();
